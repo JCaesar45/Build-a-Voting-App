@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Votely - Create & Share Polls</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .poll-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .poll-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .vote-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .vote-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .vote-btn:active {
+            transform: scale(0.95);
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-slide-in {
+            animation: slideIn 0.5s ease-out forwards;
+        }
+        
+        .modal-enter {
+            animation: modalIn 0.3s ease-out forwards;
+        }
+        
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .option-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .bar-fill {
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen overflow-x-hidden">
+    <!-- Navigation -->
+    <nav class="glass-panel fixed w-full z-50 top-0 border-b border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center cursor-pointer" onclick="showHome()">
+                    <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center mr-3 shadow-lg">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <span class="text-2xl font-bold gradient-text">Votely</span>
+                </div>
+                
+                <div class="flex items-center space-x-4" id="navAuth">
+                    <!-- Auth buttons injected by JS -->
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="pt-20 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        
+        <!-- Hero Section -->
+        <section id="hero" class="text-center py-16 lg:py-24 animate-slide-in">
+            <h1 class="text-5xl lg:text-7xl font-bold mb-6 leading-tight">
+                Create Polls.<br>
+                <span class="gradient-text">Get Answers.</span>
+            </h1>
+            <p class="text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
+                The fastest way to create, share, and analyze polls. Sign up to create your own polls or vote anonymously on existing ones.
+            </p>
+            <div class="flex justify-center gap-4 flex-wrap">
+                <button onclick="showAllPolls()" class="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                    Browse Polls
+                </button>
+                <button id="heroCreateBtn" onclick="showCreatePoll()" class="px-8 py-4 bg-gray-800 border border-gray-700 rounded-full font-semibold text-lg hover:bg-gray-700 transition-all duration-300 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Create Poll
+                </button>
+            </div>
+        </section>
+
+        <!-- Auth Modal -->
+        <div id="authModal" class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+            <div class="glass-panel rounded-2xl p-8 max-w-md w-full modal-enter border border-gray-700">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 id="authTitle" class="text-3xl font-bold">Sign In</h2>
+                    <button onclick="closeAuthModal()" class="text-gray-400 hover:text-white transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <form id="authForm" onsubmit="handleAuth(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-2">Username</label>
+                        <input type="text" id="usernameInput" required class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" placeholder="Enter username">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-2">Password</label>
+                        <input type="password" id="passwordInput" required class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" placeholder="••••••••">
+                    </div>
+                    <button type="submit" id="authSubmitBtn" class="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl font-semibold hover:opacity-90 transition-opacity">
+                        Sign In
+                    </button>
+                </form>
+                
+                <p class="mt-6 text-center text-gray-400">
+                    <span id="authToggleText">Don't have an account?</span>
+                    <button onclick="toggleAuthMode()" id="authToggleBtn" class="text-indigo-400 hover:text-indigo-300 ml-2 font-medium">Sign Up</button>
+                </p>
+            </div>
+        </div>
+
+        <!-- Create Poll Section -->
+        <section id="createPollSection" class="hidden animate-slide-in">
+            <div class="max-w-2xl mx-auto">
+                <div class="glass-panel rounded-2xl p-8 border border-gray-700">
+                    <h2 class="text-3xl font-bold mb-6 flex items-center gap-3">
+                        <span class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                        </span>
+                        Create New Poll
+                    </h2>
+                    
+                    <form id="createPollForm" onsubmit="handleCreatePoll(event)" class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">Poll Question</label>
+                            <input type="text" id="pollQuestion" required class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-lg" placeholder="What would you like to ask?">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">Options</label>
+                            <div id="optionsContainer" class="space-y-3">
+                                <input type="text" required class="option-input w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl transition-all" placeholder="Option 1">
+                                <input type="text" required class="option-input w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl transition-all" placeholder="Option 2">
+                            </div>
+                            <button type="button" onclick="addOptionInput()" class="mt-3 text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-2 transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                Add Another Option
+                            </button>
+                        </div>
+                        
+                        <div class="flex gap-4 pt-4">
+                            <button type="submit" class="flex-1 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl font-semibold hover:shadow-lg hover:shadow-indigo-500/30 transition-all">
+                                Create Poll
+                            </button>
+                            <button type="button" onclick="showHome()" class="px-6 py-3 bg-gray-800 border border-gray-700 rounded-xl font-semibold hover:bg-gray-700 transition-all">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Polls List Section -->
+        <section id="pollsListSection" class="hidden animate-slide-in">
+            <div class="flex justify-between items-center mb-8">
+                <h2 id="pollsListTitle" class="text-3xl font-bold">All Polls</h2>
+                <div class="flex gap-3">
+                    <button onclick="showHome()" class="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700 transition-all text-sm">
+                        Back
+                    </button>
+                </div>
+            </div>
+            
+            <div id="pollsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Polls injected by JS -->
+            </div>
+            
+            <div id="emptyState" class="hidden text-center py-20">
+                <div class="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg class="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+                <p class="text-gray-500 text-lg">No polls available</p>
+            </div>
+        </section>
+
+        <!-- Poll Detail Section -->
+        <section id="pollDetailSection" class="hidden animate-slide-in">
+            <div class="max-w-4xl mx-auto">
+                <button onclick="showAllPolls()" class="mb-6 text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Back to Polls
+                </button>
+                
+                <div class="glass-panel rounded-2xl p-8 border border-gray-700 mb-6">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <h2 id="detailQuestion" class="text-2xl lg:text-3xl font-bold mb-2"></h2>
+                            <p id="detailAuthor" class="text-gray-400"></p>
+                        </div>
+                        <div id="detailActions" class="flex gap-2">
+                            <!-- Actions injected by JS -->
+                        </div>
+                    </div>
+                    
+                    <div class="grid lg:grid-cols-2 gap-8">
+                        <!-- Voting Options -->
+                        <div id="votingSection" class="space-y-4">
+                            <h3 class="text-lg font-semibold text-gray-300 mb-4">Cast Your Vote</h3>
+                            <div id="voteOptions" class="space-y-3">
+                                <!-- Options injected by JS -->
+                            </div>
+                            
+                            <!-- Add Custom Option -->
+                            <div id="customOptionSection" class="pt-4 border-t border-gray-700 mt-6">
+                                <p class="text-sm text-gray-400 mb-3">Don't see your preferred option?</p>
+                                <div class="flex gap-3">
+                                    <input type="text" id="customOptionInput" class="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Add your own option">
+                                    <button onclick="addCustomOption()" class="px-4 py-2 bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                                        Add & Vote
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Results Chart -->
+                        <div class="bg-gray-800/50 rounded-xl p-6">
+                            <h3 class="text-lg font-semibold text-gray-300 mb-4">Results</h3>
+                            <div class="relative h-64">
+                                <canvas id="resultsChart"></canvas>
+                            </div>
+                            <div id="resultsStats" class="mt-4 space-y-2">
+                                <!-- Stats injected by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Share Section -->
+                <div class="glass-panel rounded-2xl p-6 border border-gray-700">
+                    <h3 class="text-lg font-semibold mb-4">Share this Poll</h3>
+                    <div class="flex gap-3">
+                        <input type="text" id="shareLink" readonly class="flex-1 px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-gray-400 select-all">
+                        <button onclick="copyShareLink()" class="px-6 py-3 bg-gray-800 border border-gray-700 rounded-xl hover:bg-gray-700 transition-all font-medium flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                            Copy
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- My Polls Section -->
+        <section id="myPollsSection" class="hidden animate-slide-in">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-bold">My Polls</h2>
+                <button onclick="showCreatePoll()" class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl font-semibold hover:shadow-lg hover:shadow-indigo-500/30 transition-all flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    New Poll
+                </button>
+            </div>
+            <div id="myPollsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- My polls injected by JS -->
+            </div>
+            <div id="myPollsEmpty" class="hidden text-center py-20">
+                <p class="text-gray-500 text-lg">You haven't created any polls yet.</p>
+                <button onclick="showCreatePoll()" class="mt-4 text-indigo-400 hover:text-indigo-300 font-medium">Create your first poll</button>
+            </div>
+        </section>
+
+        <!-- Toast Notification -->
+        <div id="toast" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+            <div class="glass-panel rounded-xl px-6 py-4 border border-gray-700 shadow-2xl flex items-center gap-3">
+                <div id="toastIcon" class="w-8 h-8 rounded-full flex items-center justify-center"></div>
+                <span id="toastMessage" class="font-medium"></span>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // State Management
+        let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+        let users = JSON.parse(localStorage.getItem('users')) || [];
+        let polls = JSON.parse(localStorage.getItem('polls')) || [];
+        let chartInstance = null;
+        let viewingPollId = null;
+
+        // Initialize with sample data if empty
+        if (polls.length === 0) {
+            polls = [
+                {
+                    id: 'sample-1',
+                    question: "What's your favorite programming language?",
+                    options: ["JavaScript", "Python", "Java", "Go", "Rust"],
+                    votes: { "JavaScript": 45, "Python": 38, "Java": 22, "Go": 15, "Rust": 12 },
+                    author: "demo-user",
+                    createdAt: new Date().toISOString(),
+                    voters: []
+                },
+                {
+                    id: 'sample-2',
+                    question: "Best movie genre?",
+                    options: ["Action", "Comedy", "Drama", "Sci-Fi", "Horror"],
+                    votes: { "Action": 56, "Comedy": 43, "Drama": 34, "Sci-Fi": 67, "Horror": 23 },
+                    author: "demo-user",
+                    createdAt: new Date().toISOString(),
+                    voters: []
+                }
+            ];
+            savePolls();
+        }
+
+        // Storage Functions
+        function saveUsers() {
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+
+        function savePolls() {
+            localStorage.setItem('polls', JSON.stringify(polls));
+        }
+
+        function saveCurrentUser() {
+            if (currentUser) {
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            } else {
+                localStorage.removeItem('currentUser');
+            }
+        }
+
+        // Navigation Functions
+        function showHome() {
+            hideAllSections();
+            document.getElementById('hero').classList.remove('hidden');
+            updateNav();
+        }
+
+        function showAllPolls() {
+            hideAllSections();
+            document.getElementById('pollsListSection').classList.remove('hidden');
+            document.getElementById('pollsListTitle').textContent = 'All Polls';
+            renderPollsList(polls);
+        }
+
+        function showMyPolls() {
+            if (!currentUser) {
+                showAuthModal();
+                return;
+            }
+            hideAllSections();
+            document.getElementById('myPollsSection').classList.remove('hidden');
+            const myPolls = polls.filter(p => p.author === currentUser.username);
+            renderMyPolls(myPolls);
+        }
+
+        function showCreatePoll() {
+            if (!currentUser) {
+                showAuthModal();
+                return;
+            }
+            hideAllSections();
+            document.getElementById('createPollSection').classList.remove('hidden');
+        }
+
+        function showPollDetail(pollId) {
+            hideAllSections();
+            document.getElementById('pollDetailSection').classList.remove('hidden');
+            viewingPollId = pollId;
+            renderPollDetail(pollId);
+        }
+
+        function hideAllSections() {
+            ['hero', 'createPollSection', 'pollsListSection', 'pollDetailSection', 'myPollsSection'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+        }
+
+        // Auth Functions
+        function updateNav() {
+            const navAuth = document.getElementById('navAuth');
+            const heroCreateBtn = document.getElementById('heroCreateBtn');
+            
+            if (currentUser) {
+                navAuth.innerHTML = `
+                    <button onclick="showMyPolls()" class="text-gray-300 hover:text-white font-medium transition-colors">My Polls</button>
+                    <div class="relative group">
+                        <button class="flex items-center gap-2 text-gray-300 hover:text-white font-medium transition-colors">
+                            <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-sm font-bold">
+                                ${currentUser.username.charAt(0).toUpperCase()}
+                            </div>
+                            <span>${currentUser.username}</span>
+                        </button>
+                        <div class="absolute right-0 mt-2 w-48 bg-gray-800 rounded-xl shadow-2xl border border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right">
+                            <button onclick="logout()" class="w-full text-left px-4 py-3 hover:bg-gray-700 rounded-xl transition-colors text-red-400">
+                                Sign Out
+                            </button>
+                        </div>
+                    </div>
+                `;
+                if (heroCreateBtn) heroCreateBtn.onclick = showCreatePoll;
+            } else {
+                navAuth.innerHTML = `
+                    <button onclick="showAuthModal()" class="text-gray-300 hover:text-white font-medium transition-colors">Sign In</button>
+                    <button onclick="showAuthModal()" class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full font-medium hover:shadow-lg hover:shadow-indigo-500/30 transition-all">
+                        Sign Up
+                    </button>
+                `;
+                if (heroCreateBtn) heroCreateBtn.onclick = () => showAuthModal();
+            }
+        }
+
+        let authMode = 'signin';
+        function showAuthModal() {
+            document.getElementById('authModal').classList.remove('hidden');
+            document.getElementById('usernameInput').value = '';
+            document.getElementById('passwordInput').value = '';
+        }
+
+        function closeAuthModal() {
+            document.getElementById('authModal').classList.add('hidden');
+        }
+
+        function toggleAuthMode() {
+            authMode = authMode === 'signin' ? 'signup' : 'signin';
+            document.getElementById('authTitle').textContent = authMode === 'signin' ? 'Sign In' : 'Sign Up';
+            document.getElementById('authSubmitBtn').textContent = authMode === 'signin' ? 'Sign In' : 'Create Account';
+            document.getElementById('authToggleText').textContent = authMode === 'signin' ? "Don't have an account?" : "Already have an account?";
+            document.getElementById('authToggleBtn').textContent = authMode === 'signin' ? 'Sign Up' : 'Sign In';
+        }
+
+        function handleAuth(e) {
+            e.preventDefault();
+            const username = document.getElementById('usernameInput').value.trim();
+            const password = document.getElementById('passwordInput').value;
+
+            if (authMode === 'signup') {
+                if (users.find(u => u.username === username)) {
+                    showToast('Username already exists', 'error');
+                    return;
+                }
+                users.push({ username, password });
+                saveUsers();
+                showToast('Account created successfully!', 'success');
+            }
+
+            const user = users.find(u => u.username === username && u.password === password);
+            if (user) {
+                currentUser = user;
+                saveCurrentUser();
+                closeAuthModal();
+                updateNav();
+                showToast(`Welcome, ${username}!`, 'success');
+            } else {
+                showToast('Invalid credentials', 'error');
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            saveCurrentUser();
+            updateNav();
+            showHome();
+            showToast('Signed out successfully', 'success');
+        }
+
+        // Poll Creation
+        function addOptionInput() {
+            const container = document.getElementById('optionsContainer');
+            const count = container.children.length + 1;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.required = true;
+            input.className = 'option-input w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl transition-all animate-slide-in';
+            input.placeholder = `Option ${count}`;
+            container.appendChild(input);
+        }
+
+        function handleCreatePoll(e) {
+            e.preventDefault();
+            const question = document.getElementById('pollQuestion').value.trim();
+            const optionInputs = document.querySelectorAll('.option-input');
+            const options = Array.from(optionInputs).map(input => input.value.trim()).filter(val => val);
+
+            if (options.length < 2) {
+                showToast('Please provide at least 2 options', 'error');
+                return;
+            }
+
+            const poll = {
+                id: 'poll-' + Date.now(),
+                question,
+                options,
+                votes: {},
+                author: currentUser.username,
+                createdAt: new Date().toISOString(),
+                voters: []
+            };
+
+            options.forEach(opt => poll.votes[opt] = 0);
+            polls.push(poll);
+            savePolls();
+
+            showToast('Poll created successfully!', 'success');
+            showMyPolls();
+        }
+
+        // Poll List Rendering
+        function renderPollsList(pollsToRender) {
+            const grid = document.getElementById('pollsGrid');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (pollsToRender.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            emptyState.classList.add('hidden');
+            grid.innerHTML = pollsToRender.map(poll => createPollCard(poll)).join('');
+        }
+
+        function renderMyPolls(myPolls) {
+            const grid = document.getElementById('myPollsGrid');
+            const emptyState = document.getElementById('myPollsEmpty');
+            
+            if (myPolls.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            emptyState.classList.add('hidden');
+            grid.innerHTML = myPolls.map(poll => createPollCard(poll, true)).join('');
+        }
+
+        function createPollCard(poll, isOwner = false) {
+            const totalVotes = Object.values(poll.votes).reduce((a, b) => a + b, 0);
+            const hasVoted = currentUser && poll.voters.includes(currentUser.username);
+            
+            return `
+                <div class="poll-card glass-panel rounded-2xl p-6 border border-gray-700 cursor-pointer" onclick="showPollDetail('${poll.id}')">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-xl font-bold">
+                            ${poll.question.charAt(0).toUpperCase()}
+                        </div>
+                        ${isOwner ? `
+                            <button onclick="deletePoll(event, '${poll.id}')" class="text-gray-400 hover:text-red-400 transition-colors p-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        ` : ''}
+                    </div>
+                    <h3 class="text-xl font-bold mb-2 line-clamp-2">${poll.question}</h3>
+                    <p class="text-gray-400 text-sm mb-4">by ${poll.author}</p>
+                    <div class="flex items-center justify-between text-sm text-gray-400">
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            ${totalVotes} votes
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                            </svg>
+                            ${poll.options.length} options
+                        </span>
+                    </div>
+                    ${hasVoted ? '<div class="mt-4 text-indigo-400 text-sm font-medium">✓ You voted</div>' : ''}
+                </div>
+            `;
+        }
+
+        // Poll Detail & Voting
+        function renderPollDetail(pollId) {
+            const poll = polls.find(p => p.id === pollId);
+            if (!poll) return;
+
+            document.getElementById('detailQuestion').textContent = poll.question;
+            document.getElementById('detailAuthor').textContent = `Created by ${poll.author} • ${new Date(poll.createdAt).toLocaleDateString()}`;
+            
+            // Share link
+            document.getElementById('shareLink').value = `${window.location.origin}${window.location.pathname}?poll=${pollId}`;
+            
+            // Actions
+            const actionsDiv = document.getElementById('detailActions');
+            if (currentUser && poll.author === currentUser.username) {
+                actionsDiv.innerHTML = `
+                    <button onclick="deletePollFromDetail()" class="text-red-400 hover:text-red-300 p-2 rounded-lg hover:bg-red-400/10 transition-all">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
+                `;
+            } else {
+                actionsDiv.innerHTML = '';
+            }
+
+            // Voting options
+            const hasVoted = currentUser && poll.voters.includes(currentUser.username);
+            const voteOptionsDiv = document.getElementById('voteOptions');
+            
+            if (hasVoted) {
+                voteOptionsDiv.innerHTML = '<div class="text-indigo-400 font-medium text-center py-4">✓ You have already voted on this poll</div>';
+                document.getElementById('customOptionSection').style.display = 'none';
+            } else {
+                voteOptionsDiv.innerHTML = poll.options.map((option, index) => `
+                    <button onclick="vote('${option}')" class="vote-btn w-full text-left px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl hover:border-indigo-500 hover:bg-gray-750 transition-all group">
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium group-hover:text-indigo-300 transition-colors">${option}</span>
+                            <svg class="w-5 h-5 text-gray-600 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                    </button>
+                `).join('');
+                document.getElementById('customOptionSection').style.display = currentUser ? 'block' : 'none';
+            }
+
+            updateChart(poll);
+        }
+
+        function vote(option) {
+            if (!currentUser) {
+                showToast('Please sign in to vote', 'error');
+                showAuthModal();
+                return;
+            }
+
+            const poll = polls.find(p => p.id === viewingPollId);
+            if (poll.voters.includes(currentUser.username)) {
+                showToast('You have already voted', 'error');
+                return;
+            }
+
+            poll.votes[option]++;
+            poll.voters.push(currentUser.username);
+            savePolls();
+            
+            showToast('Vote recorded!', 'success');
+            renderPollDetail(viewingPollId);
+            
+            // Update lists if visible
+            if (!document.getElementById('pollsListSection').classList.contains('hidden')) {
+                showAllPolls();
+            }
+            if (!document.getElementById('myPollsSection').classList.contains('hidden')) {
+                showMyPolls();
+            }
+        }
+
+        function addCustomOption() {
+            const input = document.getElementById('customOptionInput');
+            const value = input.value.trim();
+            
+            if (!value) {
+                showToast('Please enter an option', 'error');
+                return;
+            }
+
+            const poll = polls.find(p => p.id === viewingPollId);
+            if (poll.options.includes(value)) {
+                showToast('This option already exists', 'error');
+                return;
+            }
+
+            poll.options.push(value);
+            poll.votes[value] = 1;
+            poll.voters.push(currentUser.username);
+            savePolls();
+            
+            input.value = '';
+            showToast('Option added and voted!', 'success');
+            renderPollDetail(viewingPollId);
+        }
+
+        // Chart Rendering
+        function updateChart(poll) {
+            const ctx = document.getElementById('resultsChart').getContext('2d');
+            const labels = poll.options;
+            const data = labels.map(opt => poll.votes[opt]);
+            const total = data.reduce((a, b) => a + b, 0);
+            
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            const colors = [
+                'rgba(102, 126, 234, 0.8)',
+                'rgba(118, 75, 162, 0.8)',
+                'rgba(236, 72, 153, 0.8)',
+                'rgba(251, 146, 60, 0.8)',
+                'rgba(52, 211, 153, 0.8)',
+                'rgba(96, 165, 250, 0.8)',
+                'rgba(167, 139, 250, 0.8)'
+            ];
+
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Votes',
+                        data: data,
+                        backgroundColor: colors,
+                        borderColor: colors.map(c => c.replace('0.8', '1')),
+                        borderWidth: 2,
+                        borderRadius: 8,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    const percentage = total > 0 ? ((context.parsed.y / total) * 100).toFixed(1) : 0;
+                                    return `${context.parsed.y} votes (${percentage}%)`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#9CA3AF', stepSize: 1 }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#9CA3AF' }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+
+            // Update stats
+            const statsDiv = document.getElementById('resultsStats');
+            statsDiv.innerHTML = labels.map((opt, idx) => {
+                const votes = data[idx];
+                const percentage = total > 0 ? ((votes / total) * 100).toFixed(1) : 0;
+                return `
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-400">${opt}</span>
+                        <span class="font-medium">${votes} votes (${percentage}%)</span>
+                    </div>
+                    <div class="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
+                        <div class="bar-fill h-full bg-gradient-to-r from-indigo-500 to-purple-600" style="width: ${percentage}%"></div>
+                    </div>
+                `;
+            }).join('') + `
+                <div class="pt-4 mt-4 border-t border-gray-700 flex justify-between items-center">
+                    <span class="text-gray-400">Total Votes</span>
+                    <span class="text-2xl font-bold gradient-text">${total}</span>
+                </div>
+            `;
+        }
+
+        // Poll Management
+        function deletePoll(e, pollId) {
+            e.stopPropagation();
+            if (!confirm('Are you sure you want to delete this poll?')) return;
+            
+            polls = polls.filter(p => p.id !== pollId);
+            savePolls();
+            
+            if (!document.getElementById('myPollsSection').classList.contains('hidden')) {
+                showMyPolls();
+            } else if (!document.getElementById('pollsListSection').classList.contains('hidden')) {
+                showAllPolls();
+            }
+            
+            showToast('Poll deleted', 'success');
+        }
+
+        function deletePollFromDetail() {
+            if (!confirm('Are you sure you want to delete this poll?')) return;
+            
+            polls = polls.filter(p => p.id !== viewingPollId);
+            savePolls();
+            showToast('Poll deleted', 'success');
+            showAllPolls();
+        }
+
+        // Sharing
+        function copyShareLink() {
+            const input = document.getElementById('shareLink');
+            input.select();
+            document.execCommand('copy');
+            showToast('Link copied to clipboard!', 'success');
+        }
+
+        // Toast Notification
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastIcon = document.getElementById('toastIcon');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            toastMessage.textContent = message;
+            
+            if (type === 'success') {
+                toastIcon.className = 'w-8 h-8 rounded-full flex items-center justify-center bg-green-500/20 text-green-400';
+                toastIcon.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+            } else {
+                toastIcon.className = 'w-8 h-8 rounded-full flex items-center justify-center bg-red-500/20 text-red-400';
+                toastIcon.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+            }
+            
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // Check URL params for shared poll
+        function checkUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            const pollId = params.get('poll');
+            if (pollId && polls.find(p => p.id === pollId)) {
+                showPollDetail(pollId);
+            }
+        }
+
+        // Initialize
+        updateNav();
+        checkUrlParams();
+
+        // Close modal on outside click
+        document.getElementById('authModal').addEventListener('click', function(e) {
+            if (e.target === this) closeAuthModal();
+        });
+    </script>
+</body>
+</html>
